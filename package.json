@@ -1,0 +1,27 @@
+{
+  "name": "amqp-fetch",
+  "version": "1.0.0",
+  "description": "AMQP consumer to perform HTTP fetches",
+  "main": "dist/index.js",
+  "devDependencies": {
+    "typescript": "^4.2.4"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daohoangson/js-amqp-fetch.git"
+  },
+  "keywords": [
+    "amqp",
+    "http",
+    "fetch"
+  ],
+  "author": "Dao Hoang Son <daohoangson@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/daohoangson/js-amqp-fetch/issues"
+  },
+  "homepage": "https://github.com/daohoangson/js-amqp-fetch#readme"
+}
