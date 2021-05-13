@@ -3,10 +3,18 @@
   "version": "1.0.0",
   "description": "AMQP consumer to perform HTTP fetches",
   "main": "dist/index.js",
+  "dependencies": {
+    "amqplib": "^0.7.1"
+  },
   "devDependencies": {
+    "@types/amqplib": "^0.5.17",
+    "ts-standard": "^10.0.0",
     "typescript": "^4.2.4"
   },
   "scripts": {
+    "build": "tsc",
+    "lint": "ts-standard",
+    "lint:fix": "ts-standard --fix",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
