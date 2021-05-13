@@ -1,25 +1,71 @@
-import { connect } from 'amqplib'
+import { connect, Connection } from 'amqplib'
 
-export async function main() {
-  const {
-    AMQP_FETCH_CONNECT_URL,
-    AMQP_FETCH_QUEUE
-  } = process.env
+type AmqplibConnect = (url: string) => Promise<Connection>
 
-  const connectUrl = AMQP_FETCH_CONNECT_URL ?? 'amqp://localhost'
-  const queue = AMQP_FETCH_QUEUE ?? 'amqp-fetch'
+type Fetch = (input: RequestInfo) => Promise<{ status: number }>
 
-  const open = await connect(connectUrl)
-  const ch = await open.createChannel()
+interface MainParams {
+  connect: AmqplibConnect
+  connectUrl?: string
+  fetch: Fetch
+  queue?: string
+}
+
+function _parseJson (text: string): any {
+  try {
+    return JSON.parse(text)
+  } catch (e) {
+    console.error(e)
+    return {}
+  }
+}
+
+export async function main (params: MainParams): Promise<void> {
+  const connectUrl = params.connectUrl ?? 'amqp://localhost'
+  const queue = params.queue ?? 'amqp-fetch'
+
+  const conn = await params.connect(connectUrl)
+  const ch = await conn.createChannel()
   await ch.assertQueue(queue)
+
   await ch.consume(queue, (msg) => {
     if (msg === null) return
 
-    console.log(msg.content.toString())
-    ch.ack(msg)
+    const str = msg.content.toString()
+    const json = _parseJson(str)
+    if (typeof json !== 'object' || typeof json.url !== 'string') {
+      ch.nack(msg, false, false)
+      return
+    }
+
+    params.fetch(json).then(
+      (resp) => {
+        const status = resp.status
+        if (status >= 200 && status < 300) {
+          ch.ack(msg)
+        } else {
+          ch.nack(msg)
+        }
+      },
+      (e) => {
+        console.error(e)
+        ch.nack(msg)
+      }
+    )
   })
 }
 
 if (require.main === module) {
-  main()
+  const {
+    AMQP_FETCH_CONNECT_URL: connectUrl,
+    AMQP_FETCH_QUEUE: queue
+  } = process.env
+
+  // eslint-disable-next-line
+  main({
+    connect,
+    connectUrl,
+    fetch,
+    queue
+  })
 }

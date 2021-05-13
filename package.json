@@ -2,12 +2,18 @@
   "name": "amqp-fetch",
   "version": "1.0.0",
   "description": "AMQP consumer to perform HTTP fetches",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "dependencies": {
+    "@types/chai": "^4.2.18",
+    "@types/mocha": "^8.2.2",
     "amqplib": "^0.7.1"
   },
   "devDependencies": {
     "@types/amqplib": "^0.5.17",
+    "chai": "^4.3.4",
+    "mocha": "^8.4.0",
+    "mock-amqplib": "^1.3.0",
+    "ts-node": "^9.1.1",
     "ts-standard": "^10.0.0",
     "typescript": "^4.2.4"
   },
@@ -15,7 +21,7 @@
     "build": "tsc",
     "lint": "ts-standard",
     "lint:fix": "ts-standard --fix",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha -r ts-node/register 'tests/*.ts'"
   },
   "repository": {
     "type": "git",
