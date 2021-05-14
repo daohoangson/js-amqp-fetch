@@ -1,8 +1,9 @@
 import { connect, Connection } from 'amqplib'
+import fetch from 'node-fetch'
 
 type AmqplibConnect = (url: string) => Promise<Connection>
 
-type Fetch = (input: RequestInfo) => Promise<{ status: number }>
+type Fetch = (url: string) => Promise<{ status: number }>
 
 interface MainParams {
   connect: AmqplibConnect
@@ -33,12 +34,18 @@ export async function main (params: MainParams): Promise<void> {
 
     const str = msg.content.toString()
     const json = _parseJson(str)
-    if (typeof json !== 'object' || typeof json.url !== 'string') {
+    if (typeof json !== 'object') {
       ch.nack(msg, false, false)
       return
     }
 
-    params.fetch(json).then(
+    const { url } = json
+    if (typeof url !== 'string' || url.length < 1) {
+      ch.nack(msg, false, false)
+      return
+    }
+
+    params.fetch(url).then(
       (resp) => {
         const status = resp.status
         if (status >= 200 && status < 300) {

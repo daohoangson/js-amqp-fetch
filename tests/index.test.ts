@@ -4,9 +4,12 @@ import { expect } from 'chai'
 
 import { main } from '../src'
 
-const fetches: any[] = []
-async function fetch (input: any): Promise<{ status: number }> {
-  fetches.push(input)
+interface _Fetch {
+  url: string
+}
+const fetches: _Fetch[] = []
+async function fetch (url: string): Promise<{ status: number }> {
+  fetches.push({ url })
   return { status: 200 }
 }
 
@@ -26,10 +29,10 @@ describe('main', () => {
     const conn = await connect('')
     const ch = await conn.createChannel()
 
-    const input = { url: 'yolo' }
-    await ch.sendToQueue(queue, Buffer.from(JSON.stringify(input)))
+    const url = `url${Math.random()}`
+    await ch.sendToQueue(queue, Buffer.from(JSON.stringify({ url })))
 
-    expect(fetches).deep.equals([input])
+    expect(fetches).deep.equals([{ url }])
   })
 
   it('handles invalid msg', async () => {
