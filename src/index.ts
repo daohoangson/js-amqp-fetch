@@ -15,7 +15,6 @@ interface MainParams {
   connectUrl?: string
   fetch: Fetch
   fetchTimeoutInMs?: string
-  messageTtlInMs?: string
   queue?: string
 }
 
@@ -35,14 +34,10 @@ function _parseJson (text: string): any {
 export async function main (params: MainParams): Promise<void> {
   const connectUrl = params.connectUrl ?? 'amqp://localhost'
   const timeout = parseInt(params.fetchTimeoutInMs ?? '300000', 10)
-  const messageTtl = parseInt(params.messageTtlInMs ?? '5000', 10)
   const queue = params.queue ?? 'amqp-fetch'
 
   const conn = await params.connect(connectUrl)
   const ch = await conn.createChannel()
-  await ch.assertQueue(queue, {
-    messageTtl
-  })
 
   await ch.consume(queue, (msg) => {
     if (msg === null) return
@@ -84,7 +79,6 @@ if (require.main === module) {
   const {
     AMQP_FETCH_CONNECT_URL: connectUrl,
     AMQP_FETCH_FETCH_TIMEOUT_IN_MS: fetchTimeoutInMs,
-    AMQP_FETCH_MESSAGE_TTL_IN_MS: messageTtlInMs,
     AMQP_FETCH_QUEUE: queue
   } = process.env
 
@@ -94,7 +88,6 @@ if (require.main === module) {
     connectUrl,
     fetch,
     fetchTimeoutInMs,
-    messageTtlInMs,
     queue
   })
 }

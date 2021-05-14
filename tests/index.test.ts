@@ -1,3 +1,5 @@
+import type { Channel } from 'amqplib'
+
 import { describe } from 'mocha'
 import { connect } from 'mock-amqplib'
 import { expect } from 'chai'
@@ -15,35 +17,33 @@ const fetch: Fetch = async (url, init) => {
 }
 
 describe('main', () => {
-  beforeEach(() => {
-    fetches.length = 0
-  })
+  describe('connects OK', () => {
+    let ch: Channel
+    let queue: string
 
-  it('connects', async () => {
-    await main({ connect, fetch })
-  })
+    beforeEach(async () => {
+      fetches.length = 0
 
-  it('fetches with data from msg', async () => {
-    const queue = `queue${Math.random()}`
-    await main({ connect, fetch, queue })
+      const conn = await connect('')
+      ch = await conn.createChannel()
 
-    const conn = await connect('')
-    const ch = await conn.createChannel()
+      queue = `queue${Math.random()}`
+      await ch.assertQueue(queue)
 
-    const url = `url${Math.random()}`
-    await ch.sendToQueue(queue, Buffer.from(JSON.stringify({ url })))
+      await main({ connect, fetch, queue })
+    })
 
-    expect(fetches).deep.equals([{ url, timeout: 300000 }])
-  })
+    it('fetches with data from msg', async () => {
+      const url = `url${Math.random()}`
+      await ch.sendToQueue(queue, Buffer.from(JSON.stringify({ url })))
 
-  it('handles invalid msg', async () => {
-    const queue = `queue${Math.random()}`
-    await main({ connect, fetch, queue })
+      expect(fetches).deep.equals([{ url, timeout: 300000 }])
+    })
 
-    const conn = await connect('')
-    const ch = await conn.createChannel()
-    await ch.sendToQueue(queue, Buffer.from('yolo'))
+    it('handles invalid msg', async () => {
+      await ch.sendToQueue(queue, Buffer.from('yolo'))
 
-    expect(fetches.length).equals(0)
+      expect(fetches.length).equals(0)
+    })
   })
 })
