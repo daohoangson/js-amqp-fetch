@@ -30,7 +30,7 @@ function _parseJson (text: string): any {
     return JSON.parse(text)
   } catch (e) {
     _error(e)
-    return {}
+    return text
   }
 }
 
@@ -65,34 +65,46 @@ export async function main (params: MainParams): Promise<void> {
     const json = _parseJson(str)
     if (typeof json !== 'object') {
       reject(msg)
+      console.error('Ignore msg (not JSON object)', str)
       return
     }
 
     const { url } = json
     if (typeof url !== 'string' || url.length < 1) {
       reject(msg)
+      console.error('Ignore msg (no URL)', json)
       return
     }
 
     const fetchInit = {
       timeout
     }
+    const timeStart = process.hrtime();
     params.fetch(url, fetchInit).then(
       (resp) => {
         const status = resp.status
+        var timeElapsed = process.hrtime(timeStart);
+
         if (status >= 200 && status < 300) {
           ch.ack(msg)
+          console.log('ack OK', { url, status, timeElapsed })
         } else {
           const redelivered = redeliver(msg)
-          console.warn('redeliver (status)', { url, status, redelivered })
+          console.warn('redeliver (status)', { url, status, timeElapsed, redelivered })
         }
       },
       (e) => {
         _error(e)
         const redelivered = redeliver(msg)
-        console.warn('redeliver (fetch error)', { url, redelivered })
+        console.error('redeliver (fetch error)', { url, redelivered })
       }
     )
+  })
+
+  console.log('Connected', {
+    connectUrl,
+    timeout,
+    queue
   })
 }
 
