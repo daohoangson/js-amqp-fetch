@@ -9,6 +9,7 @@ interface MainParams {
   connect: AmqplibConnect
   connectUrl?: string
   fetch: Fetch
+  messageTtlInMs?: string
   queue?: string
 }
 
@@ -27,11 +28,14 @@ function _parseJson (text: string): any {
 
 export async function main (params: MainParams): Promise<void> {
   const connectUrl = params.connectUrl ?? 'amqp://localhost'
+  const messageTtl = parseInt(params.messageTtlInMs ?? '5000', 10)
   const queue = params.queue ?? 'amqp-fetch'
 
   const conn = await params.connect(connectUrl)
   const ch = await conn.createChannel()
-  await ch.assertQueue(queue)
+  await ch.assertQueue(queue, {
+    messageTtl
+  })
 
   await ch.consume(queue, (msg) => {
     if (msg === null) return
@@ -69,6 +73,7 @@ export async function main (params: MainParams): Promise<void> {
 if (require.main === module) {
   const {
     AMQP_FETCH_CONNECT_URL: connectUrl,
+    AMQP_FETCH_MESSAGE_TTL_IN_MS: messageTtlInMs,
     AMQP_FETCH_QUEUE: queue
   } = process.env
 
@@ -77,6 +82,7 @@ if (require.main === module) {
     connect,
     connectUrl,
     fetch,
+    messageTtlInMs,
     queue
   })
 }
