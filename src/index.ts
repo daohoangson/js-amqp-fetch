@@ -1,4 +1,4 @@
-import { connect, Connection } from 'amqplib'
+import { connect, Connection, ConsumeMessage } from 'amqplib'
 import fetch from 'node-fetch'
 
 type AmqplibConnect = (url: string) => Promise<Connection>
@@ -16,7 +16,10 @@ interface MainParams {
   fetch: Fetch
   fetchTimeoutInMs?: string
   queue?: string
+  retries?: string
 }
+
+const _headerConsumeCount = 'x-consume-count'
 
 function _error (e: any): void {
   console.error(e instanceof Error ? e.message : e)
@@ -32,6 +35,7 @@ function _parseJson (text: string): any {
 }
 
 export async function main (params: MainParams): Promise<void> {
+  const retries = parseInt(params.retries ?? '3', 10)
   const connectUrl = params.connectUrl ?? 'amqp://localhost'
   const timeout = parseInt(params.fetchTimeoutInMs ?? '300000', 10)
   const queue = params.queue ?? 'amqp-fetch'
@@ -39,19 +43,34 @@ export async function main (params: MainParams): Promise<void> {
   const conn = await params.connect(connectUrl)
   const ch = await conn.createChannel()
 
+  const reject = (msg: ConsumeMessage): void => ch.nack(msg, false, false)
+  const redeliver = (msg: ConsumeMessage): boolean => {
+    let redelivered = false
+    const consumeCount = msg.properties.headers[_headerConsumeCount] as number ?? 1
+    if (retries === 0 || consumeCount < retries) {
+      redelivered = ch.sendToQueue(queue, msg.content, {
+        headers: { [_headerConsumeCount]: consumeCount + 1 }
+      })
+    }
+
+    ch.nack(msg, false, false)
+
+    return redelivered
+  }
+
   await ch.consume(queue, (msg) => {
     if (msg === null) return
 
     const str = msg.content.toString()
     const json = _parseJson(str)
     if (typeof json !== 'object') {
-      ch.nack(msg, false, false)
+      reject(msg)
       return
     }
 
     const { url } = json
     if (typeof url !== 'string' || url.length < 1) {
-      ch.nack(msg, false, false)
+      reject(msg)
       return
     }
 
@@ -64,12 +83,14 @@ export async function main (params: MainParams): Promise<void> {
         if (status >= 200 && status < 300) {
           ch.ack(msg)
         } else {
-          ch.nack(msg)
+          const redelivered = redeliver(msg)
+          console.warn('redeliver (status)', { url, status, redelivered })
         }
       },
       (e) => {
         _error(e)
-        ch.nack(msg)
+        const redelivered = redeliver(msg)
+        console.warn('redeliver (fetch error)', { url, redelivered })
       }
     )
   })
@@ -79,7 +100,8 @@ if (require.main === module) {
   const {
     AMQP_FETCH_CONNECT_URL: connectUrl,
     AMQP_FETCH_FETCH_TIMEOUT_IN_MS: fetchTimeoutInMs,
-    AMQP_FETCH_QUEUE: queue
+    AMQP_FETCH_QUEUE: queue,
+    AMQP_FETCH_RETRIES: retries
   } = process.env
 
   // eslint-disable-next-line
@@ -88,6 +110,7 @@ if (require.main === module) {
     connectUrl,
     fetch,
     fetchTimeoutInMs,
-    queue
+    queue,
+    retries
   })
 }
