@@ -8,7 +8,7 @@ jobs:
   container-job:
     runs-on: ubuntu-latest
     container:
-      image: node:lts-alpine
+      image: node:lts
 
     services:
       mockserver:
