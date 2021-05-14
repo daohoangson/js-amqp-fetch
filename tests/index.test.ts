@@ -53,7 +53,7 @@ describe('main', () => {
       expect(fetches).deep.equals([{ url, timeout: 300000 }])
     })
 
-    it('retries with 400', async () => {
+    it('retries with non-2xx statuses', async () => {
       const url = `url${Math.random()}-status=400-`
       await ch.sendToQueue(queue, Buffer.from(JSON.stringify({ url })))
       await ch.close()

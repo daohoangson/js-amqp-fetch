@@ -34,7 +34,7 @@ function _parseJson (text: string): any {
   }
 }
 
-export async function main (params: MainParams): Promise<void> {
+export async function main (params: MainParams): Promise<() => Promise<void>> {
   const retries = parseInt(params.retries ?? '3', 10)
   const connectUrl = params.connectUrl ?? 'amqp://localhost'
   const timeout = parseInt(params.fetchTimeoutInMs ?? '300000', 10)
@@ -58,8 +58,10 @@ export async function main (params: MainParams): Promise<void> {
     return redelivered
   }
 
-  await ch.consume(queue, (msg) => {
-    if (msg === null) return
+  const consume = await ch.consume(queue, (msg) => {
+    if (msg === null) {
+      return
+    }
 
     const str = msg.content.toString()
     const json = _parseJson(str)
@@ -79,15 +81,15 @@ export async function main (params: MainParams): Promise<void> {
     const fetchInit = {
       timeout
     }
-    const timeStart = process.hrtime();
+    const timeStart = process.hrtime()
     params.fetch(url, fetchInit).then(
       (resp) => {
         const status = resp.status
-        var timeElapsed = process.hrtime(timeStart);
+        const timeElapsed = process.hrtime(timeStart)
 
         if (status >= 200 && status < 300) {
           ch.ack(msg)
-          console.log('ack OK', { url, status, timeElapsed })
+          console.log(`${url} -> ${status} in ${timeElapsed[0]}s + ${timeElapsed[1]}ns`)
         } else {
           const redelivered = redeliver(msg)
           console.warn('redeliver (status)', { url, status, timeElapsed, redelivered })
@@ -106,6 +108,12 @@ export async function main (params: MainParams): Promise<void> {
     timeout,
     queue
   })
+
+  return async () => {
+    await ch.cancel(consume.consumerTag)
+    await ch.close()
+    await conn.close()
+  }
 }
 
 if (require.main === module) {
