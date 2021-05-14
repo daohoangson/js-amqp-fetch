@@ -12,11 +12,15 @@ interface MainParams {
   queue?: string
 }
 
+function _error (e: any): void {
+  console.error(e instanceof Error ? e.message : e)
+}
+
 function _parseJson (text: string): any {
   try {
     return JSON.parse(text)
   } catch (e) {
-    console.error(e)
+    _error(e)
     return {}
   }
 }
@@ -55,7 +59,7 @@ export async function main (params: MainParams): Promise<void> {
         }
       },
       (e) => {
-        console.error(e)
+        _error(e)
         ch.nack(msg)
       }
     )
