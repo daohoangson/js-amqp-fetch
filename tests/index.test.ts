@@ -2,14 +2,15 @@ import { describe } from 'mocha'
 import { connect } from 'mock-amqplib'
 import { expect } from 'chai'
 
-import { main } from '../src'
+import { Fetch, main } from '../src'
 
 interface _Fetch {
   url: string
+  timeout: number
 }
 const fetches: _Fetch[] = []
-async function fetch (url: string): Promise<{ status: number }> {
-  fetches.push({ url })
+const fetch: Fetch = async (url, init) => {
+  fetches.push({ url, ...init })
   return { status: 200 }
 }
 
@@ -32,7 +33,7 @@ describe('main', () => {
     const url = `url${Math.random()}`
     await ch.sendToQueue(queue, Buffer.from(JSON.stringify({ url })))
 
-    expect(fetches).deep.equals([{ url }])
+    expect(fetches).deep.equals([{ url, timeout: 300000 }])
   })
 
   it('handles invalid msg', async () => {

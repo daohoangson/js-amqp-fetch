@@ -3,12 +3,18 @@ import fetch from 'node-fetch'
 
 type AmqplibConnect = (url: string) => Promise<Connection>
 
-type Fetch = (url: string) => Promise<{ status: number }>
+export type Fetch = (
+  url: string,
+  init: {
+    timeout: number
+  }
+) => Promise<{ status: number }>
 
 interface MainParams {
   connect: AmqplibConnect
   connectUrl?: string
   fetch: Fetch
+  fetchTimeoutInMs?: string
   messageTtlInMs?: string
   queue?: string
 }
@@ -28,6 +34,7 @@ function _parseJson (text: string): any {
 
 export async function main (params: MainParams): Promise<void> {
   const connectUrl = params.connectUrl ?? 'amqp://localhost'
+  const timeout = parseInt(params.fetchTimeoutInMs ?? '300000', 10)
   const messageTtl = parseInt(params.messageTtlInMs ?? '5000', 10)
   const queue = params.queue ?? 'amqp-fetch'
 
@@ -53,7 +60,10 @@ export async function main (params: MainParams): Promise<void> {
       return
     }
 
-    params.fetch(url).then(
+    const fetchInit = {
+      timeout
+    }
+    params.fetch(url, fetchInit).then(
       (resp) => {
         const status = resp.status
         if (status >= 200 && status < 300) {
@@ -73,6 +83,7 @@ export async function main (params: MainParams): Promise<void> {
 if (require.main === module) {
   const {
     AMQP_FETCH_CONNECT_URL: connectUrl,
+    AMQP_FETCH_FETCH_TIMEOUT_IN_MS: fetchTimeoutInMs,
     AMQP_FETCH_MESSAGE_TTL_IN_MS: messageTtlInMs,
     AMQP_FETCH_QUEUE: queue
   } = process.env
@@ -82,6 +93,7 @@ if (require.main === module) {
     connect,
     connectUrl,
     fetch,
+    fetchTimeoutInMs,
     messageTtlInMs,
     queue
   })
