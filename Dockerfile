@@ -9,6 +9,5 @@ RUN npm run build
 
 FROM $BASE_IMAGE
 COPY --from=builder /amqp-fetch/dist /amqp-fetch/dist
-WORKDIR /amqp-fetch
 
-CMD node dist/index.js
+CMD node /amqp-fetch/dist/index.js

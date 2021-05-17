@@ -42,6 +42,6 @@ jobs:
           - '15672:15672'
 
     steps:
-      - run: node dist/index.js
+      - run: node /amqp-fetch/dist/index.js
         env:
           AMQP_FETCH_CONNECT_URL: amqp://rabbitmq
