@@ -4,7 +4,7 @@ import { describe } from 'mocha'
 import { connect } from 'mock-amqplib'
 import { expect } from 'chai'
 
-import { Fetch, main } from '../src'
+import { Fetch, amqpFetch } from '../src/amqp-fetch'
 
 interface _Fetch {
   url: string
@@ -37,7 +37,7 @@ describe('main', () => {
       queue = `queue${Math.random()}`
       await ch.assertQueue(queue)
 
-      await main({
+      await amqpFetch({
         connect,
         fetch,
         queue,

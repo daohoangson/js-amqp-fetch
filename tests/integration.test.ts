@@ -3,7 +3,7 @@ import { Channel, connect, Connection } from 'amqplib'
 import mockServer from 'mockserver-client'
 import fetch from 'node-fetch'
 
-import { main } from '../src'
+import { amqpFetch } from '../src/amqp-fetch'
 import { MockServerClient } from 'mockserver-client/mockServerClient'
 import { expect } from 'chai'
 
@@ -38,10 +38,10 @@ suite('integration', function () {
     conn = await connect(connectUrl)
     ch = await conn.createChannel()
 
-    queue = `queue${Math.random()}`
+    queue = `integration-${Math.random()}`
     await ch.assertQueue(queue)
 
-    quit = await main({
+    quit = await amqpFetch({
       connect,
       connectUrl,
       fetch,

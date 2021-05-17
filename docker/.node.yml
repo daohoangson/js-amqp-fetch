@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+  npm-test:
+    image: node:lts-alpine
+    environment:
+      INTEGRATION_CONNECT_URL: amqp://rabbitmq
+      INTEGRATION_MOCKSERVER_HOST: mockserver
+    command: npm test
+    depends_on:
+      - mockserver
+      - rabbitmq
+    volumes:
+      - ..:/amqp-fetch
+    working_dir: /amqp-fetch
+
+  ncc:
+    build: ..
+    environment:
+      AMQP_FETCH_CONNECT_URL: amqp://rabbitmq
+      AMQP_FETCH_QUEUE:
+    depends_on:
+      - mockserver
+      - rabbitmq
