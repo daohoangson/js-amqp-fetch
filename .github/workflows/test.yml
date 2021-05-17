@@ -26,6 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - run: npm ci
+      - run: sleep 30
       - run: npm run test:coverage
         env:
           INTEGRATION_CONNECT_URL: amqp://rabbitmq
