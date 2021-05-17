@@ -22,7 +22,7 @@ sleep 1
 sleep 1
 
 ./.services.sh exec -T rabbitmq rabbitmqadmin publish "routing_key=$AMQP_FETCH_QUEUE" 'payload={"url":"https://google.com"}'
-if ./.node.sh logs ncc | grep " -> 200 "; then
+if ./.node.sh logs ncc | grep ' -> 200 '; then
   echo 'OK'
 else
   echo 'FAILED'
