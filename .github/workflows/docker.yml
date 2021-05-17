@@ -43,6 +43,9 @@ jobs:
 
     steps:
       - run: sleep 30
-      - run: node /amqp-fetch/dist/index.js
+      - run: node /amqp-fetch/dist/index.js >/tmp/stdout.txt 2>/tmp/stderr.txt &
         env:
           AMQP_FETCH_CONNECT_URL: amqp://rabbitmq
+      - run: sleep 10
+      - run: cat /tmp/stdout.txt
+      - run: cat /tmp/stderr.txt
