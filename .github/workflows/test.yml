@@ -1,3 +1,5 @@
+name: npm
+
 on:
   push:
     branches:
@@ -5,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  container-job:
+  test:
     runs-on: ubuntu-latest
     container:
       image: node:lts
