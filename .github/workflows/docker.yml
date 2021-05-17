@@ -27,5 +27,21 @@ jobs:
         with:
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
-      - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
+
+  e2e:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+    services:
+      rabbitmq:
+        image: rabbitmq:alpine
+        ports:
+          - '15672:15672'
+
+    steps:
+      - run: node dist/index.js
+        env:
+          AMQP_FETCH_CONNECT_URL: amqp://rabbitmq
