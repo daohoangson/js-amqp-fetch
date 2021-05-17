@@ -1,0 +1,5 @@
+.nyc_output/
+coverage/
+dist/
+docker/
+node_modules/
