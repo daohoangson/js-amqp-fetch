@@ -45,7 +45,10 @@ export async function amqpFetch (params: Params): Promise<() => Promise<void>> {
   const reject = (msg: ConsumeMessage): void => ch.nack(msg, false, false)
   const redeliver = (msg: ConsumeMessage): boolean => {
     let redelivered = false
-    const consumeCount = msg.properties.headers[_headerConsumeCount] as number ?? 1
+
+    const { properties } = msg
+    const headers = properties.headers ?? {}
+    const consumeCount = headers[_headerConsumeCount] as number ?? 1
     if (retries === 0 || consumeCount < retries) {
       redelivered = ch.sendToQueue(queue, msg.content, {
         headers: { [_headerConsumeCount]: consumeCount + 1 }
