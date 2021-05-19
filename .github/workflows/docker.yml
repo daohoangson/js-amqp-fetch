@@ -55,8 +55,61 @@ jobs:
         run: node /amqp-fetch/dist/index.js >/tmp/stdout.txt 2>/tmp/stderr.txt &
       - name: Publish message
         run: |
-          _payload=$( printf -- '{"url":"https://github.com"}' | base64 ) \
+          _payload=$( printf -- '{"url":"https://google.com"}' | base64 ) \
           && curl -v -u github:actions "http://rabbitmq:15672/api/exchanges/%2F/amq.default/publish" -X POST -d "{\"routing_key\":\"$AMQP_FETCH_QUEUE\",\"payload\":\"$_payload\",\"payload_encoding\":\"base64\",\"properties\":{}}" \
           && sleep 1
-      - name: Verify stdout
-        run: cat /tmp/stdout.txt | grep ' -> 200 '
+      - name: Verify fetched
+        run: cat /tmp/stdout.txt | grep google.com | grep ' -> 200 '
+
+  e2e_with_dlx:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/${{ github.repository }}:${{ github.sha }}
+    env:
+      AMQP_FETCH_CONNECT_URL: amqp://github:actions@rabbitmq
+      AMQP_FETCH_QUEUE: e2e-delayed-destination-${{ github.sha }}
+      AMQP_FETCH_QUEUE_DELAYED: e2e-delayed-${{ github.sha }}
+
+    services:
+      rabbitmq:
+        image: rabbitmq:management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: github
+          RABBITMQ_DEFAULT_PASS: actions
+        ports:
+          - '15672:15672'
+
+    steps:
+      - run: apk add --update curl
+      - name: Add queues
+        run: |
+          set -e
+          
+          sleep 30
+          
+          curl -v -u github:actions "http://rabbitmq:15672/api/queues/%2F/$AMQP_FETCH_QUEUE_DELAYED" -X PUT \
+            -d "{\"durable\":true,\"arguments\":{\"x-dead-letter-exchange\":\"\",\"x-dead-letter-routing-key\":\"$AMQP_FETCH_QUEUE\",\"x-message-ttl\":86400000}}" \
+            && sleep 1
+
+          curl -v -u github:actions "http://rabbitmq:15672/api/queues/%2F/$AMQP_FETCH_QUEUE" -X PUT \
+            -d '{"durable":true}' \
+            && sleep 1
+      - name: Run node
+        run: node /amqp-fetch/dist/index.js >/tmp/stdout.txt 2>/tmp/stderr.txt &
+      - name: Publish message
+        run: |
+          _payload=$( printf -- '{"url":"https://github.com"}' | base64 ) \
+          && curl -v -u github:actions "http://rabbitmq:15672/api/exchanges/%2F/amq.default/publish" -X POST \
+            -d "{\"routing_key\":\"$AMQP_FETCH_QUEUE_DELAYED\",\"payload\":\"$_payload\",\"payload_encoding\":\"base64\",\"properties\":{\"expiration\":\"5000\"}}" \
+          && sleep 1
+      - name: Verify fetch delayed
+        run: |
+          set -e
+
+          if cat /tmp/stdout.txt | grep github.com | grep ' -> 200 '; then
+            exit 1
+          fi
+      - name: Verify fetched
+        run: sleep 10 && cat /tmp/stdout.txt | grep github.com | grep ' -> 200 '
